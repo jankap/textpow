@@ -108,8 +108,10 @@ module Textpow
 
     def parse_regex(value)
       if Textpow::RUBY_19
+	#STDERR.puts "textpow"
         parse_regex_with_invalid_chars(value)
       else
+	#STDERR.puts "ongiuruma"
         Oniguruma::ORegexp.new(value, :options => Oniguruma::OPTION_CAPTURE_GROUP)
       end
     rescue RegexpError, ArgumentError => e
@@ -117,10 +119,21 @@ module Textpow
     end
 
     def parse_regex_with_invalid_chars(value)
-      Regexp.new(value.force_encoding('UTF-8'), nil, 'n')
+ #     if ! value.valid_encoding?
+ #       value = value.encode("UTF-16be", :invalid=>:replace, :replace=>"?").encode('UTF-8')
+ #     end
+	value = value.force_encoding('binary')
+      value = value.encode!('UTF-16', 'UTF-8', :invalid => :replace)
+      value = value.encode!('UTF-8', :invalid => :replace,:undef => :replace)
+#      Regexp.new(value.force_encoding('UTF-8'), nil, 'n')
+#puts "test1"	
+Regexp.new(value,nil,'n')
+#puts "test2"
+#	puts "#{$value}"
     rescue RegexpError => e
+	STDERR.puts "#{$value}"
       if e.message =~ /UTF-8/ or e.message =~ /invalid multibyte escape/
-        puts "Ignored utf8 regex error #{$!}"
+        STDERR.puts "Ignored utf8 regex error #{$!}"
         /INVALID_UTF8/
       else
         raise e
@@ -217,6 +230,11 @@ module Textpow
     end
 
     def match_first string, position
+   #STDERR.puts "#{string}"
+        string = string.force_encoding('binary')
+      string = string.encode!('UTF-16', 'UTF-8', :invalid => :replace)
+      string = string.encode!('UTF-8', :invalid => :replace,:undef => :replace)
+
       if self.match
         if match = self.match.match( string, position )
           return [self, match]
